@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  top:5%;
+  position: absolute;
+  color: yellow;
+  text-align: center;
+  width: 100%;
+}
+body {
+  overflow: hidden
+}
+</style>
+</head>
+
+<body> 
+<script>
+var scene, renderer, camera;
+var controls;
+var toytrain;
+var bumpMap;
+var clock;
+var turn = 1;
+var angle = 0;
+
+init();
+animate();
+
+function init()
+{
+	clock = new THREE.Clock(true);
+  
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	
+	renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.setSize (width, height);
+	renderer.setClearColor (0x000000);
+	document.body.appendChild (renderer.domElement);
+
+	scene = new THREE.Scene();
+
+	camera = new THREE.PerspectiveCamera (45, width/height, 1, 10000);
+	camera.position.y = 100;
+	camera.position.z = 250;
+	camera.lookAt (new THREE.Vector3(0,0,0));
+
+	controls = new THREE.OrbitControls (camera, renderer.domElement);
+
+	var gridXZ = new THREE.GridHelper(100, 10);
+	gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
+	scene.add(gridXZ);
+
+	var pointLight = new THREE.PointLight (0xffffff);
+	pointLight.position.set (0,300,200);
+	scene.add (pointLight);
+
+	var ambientLight = new THREE.AmbientLight (0x111111);
+	scene.add(ambientLight);
+  ////////////////////////////////////////////////////////////////////
+	// load the clara.io toytrain
+   THREE.ImageUtils.crossOrigin = '';  // no space between a pair of single quotes
+  
+	var picTexture = THREE.ImageUtils.loadTexture('https://juljan589b123n.github.io/hw/images/13149965_1324146864280386_1732220560_n.jpg');
+  var materials = [];
+  materials.push(new THREE.MeshPhongMaterial({side:THREE.DoubleSide}));
+  materials.push(new THREE.MeshPhongMaterial({side:THREE.DoubleSide}));
+  materials.push(new THREE.MeshPhongMaterial({side:THREE.DoubleSide}));
+  materials.push(new THREE.MeshPhongMaterial({side:THREE.DoubleSide}));
+  materials.push(new THREE.MeshPhongMaterial({side:THREE.DoubleSide, map:picTexture}));
+  materials.push(new THREE.MeshPhongMaterial({side:THREE.DoubleSide}));
+  var pic = new THREE.Mesh(new THREE.BoxGeometry(30,45,20), new THREE.MeshFaceMaterial(materials));
+  pic.position.y = 22.5;
+  scene.add(pic);
+
+
+	var loader = new THREE.ObjectLoader();
+  loader.load ('https://juljan589b123n.github.io/hw/model/untitled-scene.json', 
+  function ( obj ) {
+    obj.scale.set (10,10,10);
+    scene.add( obj );
+    obj.traverse (
+    	function (mesh) {
+      	if (mesh instanceof THREE.Mesh) {
+          mesh.material.bumpScale = 0.2;
+        }
+      });
+     toytrain = obj;
+   });
+
+}
+
+function animate()
+{
+	controls.update();
+	var dt = clock.getDelta();
+
+	if (toytrain !== undefined && turn) { 
+		toytrain.position.set (100*Math.cos(angle),15,- 100*Math.sin(angle));
+		toytrain.rotation.y = angle + Math.PI;
+		angle += dt;
+	}
+	
+  
+	requestAnimationFrame ( animate ); 
+	renderer.render (scene, camera);
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r70/three.min.js"></script>
+<script src="https://dl.dropboxusercontent.com/u/3587259/Code/Threejs/OrbitControls.js"></script>
+<div id='info'>
+Model is from <a href='https://clara.io/view/4ae994b9-9acd-4bb0-b658-fc1cde5dd7d9'>URL</a>
+</div>
+</body>
+
+</html>
