@@ -18,6 +18,11 @@ body {
 </head>
 
 <body> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r70/three.min.js"></script>
+<script src="https://dl.dropboxusercontent.com/u/3587259/Code/Threejs/OrbitControls.js"></script>
+<div id='info'>
+Model is from <a href='https://clara.io/view/4ae994b9-9acd-4bb0-b658-fc1cde5dd7d9'>URL</a>
+</div>
 <script>
 var scene, renderer, camera;
 var controls;
@@ -110,11 +115,7 @@ function animate()
 	renderer.render (scene, camera);
 }
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r70/three.min.js"></script>
-<script src="https://dl.dropboxusercontent.com/u/3587259/Code/Threejs/OrbitControls.js"></script>
-<div id='info'>
-Model is from <a href='https://clara.io/view/4ae994b9-9acd-4bb0-b658-fc1cde5dd7d9'>URL</a>
-</div>
+
 </body>
 
 </html>
