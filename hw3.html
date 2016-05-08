@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+
+
+</style>
+</head>
+
+<body> 
+<script>
+var scene, renderer, camera, cameraB;
+var controls;
+var car;
+var keyboard = new KeyboardState();
+var theta = 0.0000000001 , speed = 0;
+var thetaP;
+var C, RC;
+var wheelF;
+
+init();
+animate();
+
+$("#toggle").click(function() {
+  turn = !turn;
+});
+
+function init() {
+  scene = new THREE.Scene();
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  renderer.autoClear = false;
+  document.body.appendChild(renderer.domElement);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+  camera.position.z = 500;
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  
+  // Bird's Eye
+  cameraB = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+  cameraB.position.y = 500;
+
+  scene.add(camera);
+  scene.add(cameraB);
+  
+  var gridXZ = new THREE.GridHelper(200, 10);
+  gridXZ.setColors(new THREE.Color(0xff0000), new THREE.Color(0xffffff));
+  scene.add(gridXZ);
+  
+  var light = new THREE.PointLight(0xffffff);
+  light.position.set(100, 300, 200);
+  scene.add(light);
+  
+
+	var geometry = new THREE.BoxGeometry(40, 16, 20);
+	var material = new THREE.MeshLambertMaterial({
+    color: 0x0000ff,
+    transparent: true,
+    opacity:0.3
+  });
+	
+  thetaP = window.document.getElementById('thetaPrint');
+  var mesh = new THREE.Mesh(geometry, material);
+  car = new THREE.Object3D();
+  car.add (mesh);
+  mesh.position.y = 10;
+  scene.add(car);
+  
+  var wGeometry = new THREE.CylinderGeometry(5, 5, 3, 20);
+  var wMaterial = new THREE.MeshLambertMaterial({
+  	color: 0x000000
+  });
+  
+  wheelF = new THREE.Mesh(wGeometry, wMaterial);
+  wheelF.rotation.order = 'XZY';
+  wheelF.rotation.x = Math.PI/2;
+  wheelR = wheelF.clone();
+  wheelL = wheelF.clone();
+  wheelF.position.set(-40/3, 5, 0);
+  wheelR.position.set(40/3, 5, -10);
+  wheelL.position.set(40/3, 5, 10);
+  
+  car.add(wheelF);
+  car.add(wheelR);
+  car.add(wheelL);
+
+  makePillar();
+
+  window.addEventListener('resize', onWindowResize, false);///////////
+  ////////////////////
+  RCmesh = new THREE.Mesh (new THREE.SphereGeometry(5,6,6), new THREE.MeshBasicMaterial());
+  scene.add (RCmesh);
+	C = new THREE.Vector3();  
+}
+
+function makePillar(){
+	var pMaterial = new THREE.MeshLambertMaterial({
+  	color: 0xEE0000
+  });
+	radius1 =10;
+  radius2 =15;
+	pillar1 = new THREE.Mesh(new THREE.CylinderGeometry(radius1, radius1, 70, 20), pMaterial.clone());
+  pillar1.position.set(50, 35, -50);
+	pillar2 = new THREE.Mesh(new THREE.CylinderGeometry(radius2, radius2, 70, 20), pMaterial.clone());
+  pillar2.position.set(-50, 35, 50);
+  scene.add(pillar1);
+  scene.add(pillar2);
+}
+
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+	keyboard.update();
+  if (keyboard.pressed ("left"))
+  	theta += 0.01;
+  else if (keyboard.pressed("right"))
+  	theta -= 0.01;
+	thetaP.innerHTML = theta.toFixed (3);
+  
+  var thetaTmp = theta;
+  if(theta >= 0 && theta < 0.01)
+  	theta = 0.01
+  else if(theta <= 0 && theta > -0.01)
+  	theta = -0.01
+  RC = car.localToWorld (new THREE.Vector3(12,0,24/Math.tan(theta)));
+  RCmesh.position.copy (RC);
+ 
+  if(keyboard.pressed("up"))
+  	speed = 20;
+  else if(keyboard.pressed("down"))
+  	speed = -20;
+  else
+  	speed = 0;
+   
+  var omega = speed * Math.tan(theta)/24;
+  var deltaT = 0.05;
+  var vv;
+  var carTmp = car.clone();
+  
+  wheelF.rotation.z = -theta;
+  
+  vv = C.clone().sub(RC).applyAxisAngle (new THREE.Vector3(0,1,0), omega*deltaT);
+  C = vv.add(RC);
+
+  carTmp.position.copy(C);
+  carTmp.rotation.y += omega*deltaT;
+  if(checkHit(carTmp)){
+    vv = C.clone().sub(RC).applyAxisAngle (new THREE.Vector3(0,1,0), -omega*deltaT);
+    C = vv.add(RC);
+  }
+  else{
+    car.position.copy(C);
+    car.rotation.y += omega*deltaT;
+    wheelF.rotation.y += omega*deltaT / 5;
+    wheelR.rotation.y += omega*deltaT / 5;
+    wheelL.rotation.y += omega*deltaT / 5;
+  }
+  
+  controls.update();
+	
+	camera.lookAt (C);
+  var cb = car.localToWorld(new THREE.Vector3(0, 0, 0));
+  cameraB.position.set(cb.x, 500, cb.z);
+  cameraB.lookAt (cb);
+
+	requestAnimationFrame(animate);
+  render();
+  
+  theta = thetaTmp;
+}
+
+function render() {
+  var WW = window.innerWidth;
+  var HH = window.innerHeight;
+
+  renderer.enableScissorTest(true);
+  renderer.setViewport(0, 0, WW, HH);
+  renderer.setScissor(0, 0, WW, HH);
+  renderer.clear();
+  renderer.render(scene, camera);
+  renderer.setViewport(WW - WW/3, HH - HH/3, WW/3, HH/3);
+  renderer.setScissor(WW - WW/3, HH - HH/3, WW/3, HH/3);
+  renderer.clear();
+  renderer.render(scene, cameraB);
+  renderer.enableScissorTest(false);
+
+}
+
+function checkHit(carTmp){
+	var hit = false;
+	var rect = {};
+  var p = carTmp.worldToLocal(carTmp.position.clone());
+  var circ1 = {};
+  var circ2 = {};
+  
+  rect.max = p.clone().add (new THREE.Vector3(20, 0, 10));
+  rect.min = p.clone().sub (new THREE.Vector3(20, 0, 10));
+
+  circ1.c = carTmp.worldToLocal(pillar1.position.clone());
+  circ1.r = radius1;
+  var answer1 = checkIntersect(rect, circ1)
+  if(answer1){
+    hit = true;
+    pillar1.material.color = new THREE.Color(0x000000); 
+  }
+  else
+    pillar1.material.color = new THREE.Color(0xEE0000);
+
+  circ2.c = carTmp.worldToLocal(pillar2.position.clone());
+  circ2.r = radius2;
+  var answer2 = checkIntersect(rect, circ2)
+  if(answer2){
+    hit = true;
+    pillar2.material.color = new THREE.Color(0x000000); 
+  }
+  else
+    pillar2.material.color = new THREE.Color(0xEE0000);  
+  return hit;
+}
+
+function checkIntersect(rect, circle) {
+  var rad2 = circle.r * circle.r;
+  var max = rect.max.clone().sub(circle.c);
+  var min = rect.min.clone().sub(circle.c);
+  
+  if (max.x < 0) {
+  	if (max.z < 0)
+    	return (max.x*max.x + max.z*max.z < rad2);
+    else if (min.z > 0)
+    	return (max.x*max.x + min.z*min.z < rad2);
+    else
+    	return (Math.abs(max.x) < circle.r);
+  } else if (min.x > 0) {
+  	if (max.z < 0)
+    	return (min.x*min.x + max.z*max.z < rad2);
+    else if (min.z > 0)
+    	return (min.x*min.x + min.z*min.z < rad2);
+    else
+    	return (min.x < circle.r);
+  } else {
+  	if (max.z < 0)
+    	return (Math.abs(max.z) < circle.r);
+    else if (min.z > 0)
+    	return (min.z < circle.r);
+    else
+    	return true;
+  }
+}
+
+
+</script>
+<div id="info">HW3
+  <br/>
+  <p id='thetaPrint'>
+  </p>
+  <button id="toggle" style="width:20%">Toggle Turn</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r70/three.min.js"></script>
+<script src="https://dl.dropboxusercontent.com/u/3587259/Code/Threejs/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+
+
+</body>
+
+</html>
