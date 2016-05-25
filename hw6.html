@@ -131,7 +131,7 @@ Teapot.prototype.update = function () {
 Teapot.prototype.expire = function () {
 	scene.remove(this.mesh);
   teapotNum--;
-  teapots.shift();   // delete the first object in teapots[], like pop_front()
+  teapots.shift();   
   pickables2.shift();
 }
 
@@ -182,7 +182,7 @@ function init() {
   
   // teapot
   var jsonLoader = new THREE.JSONLoader();
-  var url = "https://mdes4214.github.io/2016CGhw/models/hw5/teapot.json";
+  var url = "https://juljan589b123n.github.io/hw/model/teapot.json";
   teapotMaterial = new THREE.ShaderMaterial({
   		transparent: true,
       uniforms: {
